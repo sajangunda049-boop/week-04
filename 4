@@ -1,0 +1,91 @@
+import weka.core.Instances;
+import weka.core.converters.ConverterUtils.DataSource;
+import weka.clusterers.SimpleKMeans;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.Remove;
+
+public class WekaKMeansClustering {
+
+    public static void main(String[] args) throws Exception {
+
+        String[] datasets = {
+            "weather.nominal.arff",
+            "iris.arff",
+            "glass.arff"
+        };
+
+        int[] kValues = {2, 3, 4, 5};
+
+        for (String filename : datasets) {
+
+            System.out.println("\n==================================");
+            System.out.println("Dataset: " + filename);
+            System.out.println("==================================");
+
+            // Load dataset
+            Instances original = DataSource.read(filename);
+
+            System.out.println("Original records: "
+                    + original.numInstances());
+            System.out.println("Original attributes: "
+                    + original.numAttributes());
+
+            // Remove the last attribute (class label)
+            Remove remove = new Remove();
+            remove.setAttributeIndices(
+                    Integer.toString(original.numAttributes()));
+            remove.setInputFormat(original);
+
+            Instances data = Filter.useFilter(original, remove);
+
+            // Run K-Means for different values of k
+            for (int k : kValues) {
+
+                System.out.println("\n---------- K = " + k
+                        + " ----------");
+
+                SimpleKMeans kmeans = new SimpleKMeans();
+
+                kmeans.setNumClusters(k);
+                kmeans.setSeed(10);
+                kmeans.setPreserveInstancesOrder(true);
+
+                // Build the clustering model
+                kmeans.buildClusterer(data);
+
+                // Display cluster assignments
+                int[] sizes = new int[k];
+
+                for (int i = 0; i < data.numInstances(); i++) {
+                    int cluster =
+                            kmeans.clusterInstance(data.instance(i));
+                    sizes[cluster]++;
+                }
+
+                System.out.println("\nCluster Sizes:");
+
+                for (int i = 0; i < k; i++) {
+                    System.out.println(
+                            "Cluster " + (i + 1) + ": "
+                            + sizes[i] + " records");
+                }
+
+                // Display centroids
+                System.out.println("\nCluster Centroids:");
+
+                Instances centroids =
+                        kmeans.getClusterCentroids();
+
+                System.out.println(centroids);
+
+                // Display sum of squared errors
+                System.out.println("Sum of Squared Errors (SSE): "
+                        + kmeans.getSquaredError());
+
+                // Display complete clustering model
+                System.out.println("\nClustering Model:");
+                System.out.println(kmeans);
+            }
+        }
+    }
+}
